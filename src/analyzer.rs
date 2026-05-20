@@ -3,6 +3,22 @@ use crate::whitelist::Whitelist;
 
 // System apps that should never be killed automatically
 const SYSTEM_APPS: &[&str] = &[
+    // Development tools
+    "claude",
+    "claude-code",
+    "code",
+    "Code Helper",
+    "Cursor",
+    "Cursor Helper",
+    "node",
+    "npm",
+    "cargo",
+    "rustc",
+    "go",
+    "python",
+    "ruby",
+    "java",
+    // Apple system
     "Safari",
     "Finder",
     "Dock",
@@ -34,6 +50,7 @@ const SYSTEM_APPS: &[&str] = &[
     "IMDPersistenceAgent",
     "CalendarAgent",
     "AddressBookSourceSync",
+    // Apple apps
     "Notes",
     "Mail",
     "Messages",
