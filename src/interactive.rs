@@ -191,103 +191,17 @@ fn run_interactive_inner() -> Result<()> {
         println!();
     }
 
-    println!();
-
-    // Show ALL processes table
-    println!("  {} (sorted by CPU)", "ALL PROCESSES".bold());
-    println!("  {}", "─".repeat(70));
+    // Summary line
+    println!("  {}", "─".repeat(50));
     println!(
-        "  {:>6}  {:22}  {:>6}  {:>6}  {:>8}  {}",
-        "PID", "NAME", "CPU%", "MEM", "TIME", "STATUS"
-    );
-    println!("  {}", "─".repeat(70));
-
-    for ap in all_sorted.iter().take(20) {
-        let status = if ap.whitelisted {
-            "[WL]".cyan()
-        } else if ap.is_system_app {
-            "[SYS]".blue()
-        } else if ap.issue.is_problematic() {
-            format!("[{}]", ap.issue.label()).red()
-        } else {
-            "[OK]".green()
-        };
-
-        let name = truncate(&ap.info.name, 22);
-        let name_colored = if !ap.whitelisted && !ap.is_system_app && ap.issue.is_problematic() {
-            name.red()
-        } else if ap.is_system_app {
-            name.blue()
-        } else if ap.whitelisted {
-            name.cyan()
-        } else {
-            name.normal()
-        };
-
-        let cpu_str = if ap.info.cpu_percent > 100.0 {
-            format!("{:>5.0}%", ap.info.cpu_percent).red()
-        } else if ap.info.cpu_percent > 50.0 {
-            format!("{:>5.0}%", ap.info.cpu_percent).yellow()
-        } else {
-            format!("{:>5.0}%", ap.info.cpu_percent).normal()
-        };
-
-        let mem_str = if ap.info.memory_mb > 1000 {
-            format!("{:>5}M", ap.info.memory_mb).yellow()
-        } else {
-            format!("{:>5}M", ap.info.memory_mb).normal()
-        };
-
-        println!(
-            "  {:>6}  {}  {}  {}  {:>8}  {}",
-            ap.info.pid,
-            name_colored,
-            cpu_str,
-            mem_str,
-            ap.running_human(),
-            status
-        );
-    }
-
-    if all_sorted.len() > 20 {
-        println!("  {} ... and {} more", "".dimmed(), all_sorted.len() - 20);
-    }
-
-    println!("  {}", "─".repeat(70));
-    println!();
-
-    // Summary with detailed breakdown
-    let killable_problematic: Vec<&AnalyzedProcess> = killable
-        .iter()
-        .filter(|ap| ap.issue.is_problematic())
-        .copied()
-        .collect();
-
-    if !killable_problematic.is_empty() {
-        println!(
-            "  {} {} killable problematic ({:.0}% CPU)",
-            "⚠".yellow(),
-            killable_problematic.len(),
-            killable_problematic.iter().map(|ap| ap.info.cpu_percent).sum::<f32>()
-        );
-    }
-
-    // Detailed breakdown - show each process with PID
-    println!(
-        "  {} {} killable: {}",
-        "ℹ".blue(),
+        "  {} {} killable | {} protected",
+        "📊".dimmed(),
         killable.len(),
-        format_process_list(&killable)
-    );
-    println!(
-        "  {} {} protected: {}",
-        "🔒".dimmed(),
-        protected.len(),
-        format_process_list(&protected)
+        protected.len()
     );
     println!();
 
-    show_menu(&killable, &killable_problematic)
+    show_menu(&killable, &hot, &warm)
 }
 
 #[allow(dead_code)]
@@ -314,6 +228,7 @@ fn color_temp(temp: f64) -> ColoredString {
     }
 }
 
+#[allow(dead_code)]
 fn truncate(s: &str, max: usize) -> String {
     if s.chars().count() <= max {
         format!("{:width$}", s, width = max)
@@ -344,6 +259,7 @@ fn group_by_name(processes: &[&AnalyzedProcess]) -> Vec<(String, usize, f32)> {
     result
 }
 
+#[allow(dead_code)]
 fn format_process_list(processes: &[&AnalyzedProcess]) -> String {
     if processes.is_empty() {
         return "none".to_string();
@@ -391,29 +307,42 @@ fn format_breakdown(groups: &[(String, usize, f32)]) -> String {
     result
 }
 
-fn show_menu(killable: &[&AnalyzedProcess], problematic: &[&AnalyzedProcess]) -> Result<()> {
+fn show_menu(killable: &[&AnalyzedProcess], hot: &[&AnalyzedProcess], warm: &[&AnalyzedProcess]) -> Result<()> {
     let mut options = vec![];
 
-    if !problematic.is_empty() {
-        let total_cpu: f32 = problematic.iter().map(|ap| ap.info.cpu_percent).sum();
+    // Option to kill HOT processes (>50% CPU)
+    let hot_killable: Vec<_> = hot.iter().filter(|ap| !ap.is_system_app && !ap.whitelisted).copied().collect();
+    if !hot_killable.is_empty() {
+        let total_cpu: f32 = hot_killable.iter().map(|ap| ap.info.cpu_percent).sum();
         options.push(format!(
-            "Kill all problematic ({} proc, {:.0}% CPU)",
-            problematic.len(),
+            "🔥 Kill HOT processes ({} proc, {:.0}% CPU)",
+            hot_killable.len(),
+            total_cpu
+        ));
+    }
+
+    // Option to kill WARM processes (20-50% CPU)
+    let warm_killable: Vec<_> = warm.iter().filter(|ap| !ap.is_system_app && !ap.whitelisted).copied().collect();
+    if !warm_killable.is_empty() {
+        let total_cpu: f32 = warm_killable.iter().map(|ap| ap.info.cpu_percent).sum();
+        options.push(format!(
+            "🌡️ Kill WARM processes ({} proc, {:.0}% CPU)",
+            warm_killable.len(),
             total_cpu
         ));
     }
 
     if !killable.is_empty() {
-        options.push(format!("Select from {} killable processes", killable.len()));
+        options.push(format!("📋 Select from {} killable processes", killable.len()));
     }
 
     if !killable.is_empty() {
-        options.push("Throttle a process".to_string());
+        options.push("⏱️ Throttle a process".to_string());
     }
 
-    options.push("Run maintenance".to_string());
-    options.push("Refresh".to_string());
-    options.push("Exit".to_string());
+    options.push("🔧 Run maintenance".to_string());
+    options.push("🔄 Refresh".to_string());
+    options.push("❌ Exit".to_string());
 
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Action")
@@ -423,8 +352,11 @@ fn show_menu(killable: &[&AnalyzedProcess], problematic: &[&AnalyzedProcess]) ->
 
     let selected = &options[selection];
 
-    if selected.contains("Kill all") {
-        kill_all(problematic)?;
+    if selected.contains("Kill HOT") {
+        kill_all(&hot_killable)?;
+        run_interactive_inner()
+    } else if selected.contains("Kill WARM") {
+        kill_all(&warm_killable)?;
         run_interactive_inner()
     } else if selected.contains("Select from") {
         select_and_kill(killable)?;
