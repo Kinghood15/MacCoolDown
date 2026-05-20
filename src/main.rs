@@ -33,7 +33,7 @@ use wrapper::run_wrap;
 #[derive(Parser)]
 #[command(name = "cooldown")]
 #[command(about = "Keep your MacBook cool by managing CPU-heavy processes")]
-#[command(version = "0.3.0")]
+#[command(version = "0.3.1")]
 #[command(long_about = None)]
 struct Cli {
     #[command(subcommand)]

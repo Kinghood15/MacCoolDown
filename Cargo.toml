@@ -1,6 +1,6 @@
 [package]
 name = "cooldown"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 description = "CLI tool to manage CPU-heavy processes and keep MacBook cool"
 license = "MIT"
@@ -25,6 +25,7 @@ ctrlc = "3"
 dialoguer = "0.11"
 console = "0.15"
 num_cpus = "1.16"
+crossterm = "0.28"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.29", features = ["signal", "process"] }

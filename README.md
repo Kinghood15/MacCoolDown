@@ -25,7 +25,15 @@ sudo cp target/release/cooldown /usr/local/bin/cooldown
 
 ### Default: Realtime Dashboard
 
-Just run `cooldown` to start the realtime dashboard:
+Just run `cooldown` to start the realtime dashboard (auto-refresh every 5s):
+
+**Keyboard shortcuts:**
+- `↑/↓` or `j/k` - Navigate processes
+- `x` - Kill selected process
+- `K` - Kill all problematic
+- `m` or `Enter` - Open menu
+- `p` or `Space` - Pause/Resume
+- `q` or `Esc` - Quit
 
 ```
 COOLDOWN REALTIME
