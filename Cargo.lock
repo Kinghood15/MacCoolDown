@@ -240,31 +240,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cooldown"
-version = "0.3.1"
-dependencies = [
- "anyhow",
- "assert_cmd",
- "chrono",
- "clap",
- "colored",
- "console",
- "ctrlc",
- "dialoguer",
- "dirs",
- "indicatif",
- "libc",
- "nix 0.29.0",
- "num_cpus",
- "predicates",
- "serde",
- "serde_json",
- "sysinfo",
- "tabled",
- "toml",
-]
-
-[[package]]
 name = "core-foundation-sys"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -617,6 +592,31 @@ name = "log"
 version = "0.4.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
+
+[[package]]
+name = "mac-cooldown"
+version = "0.3.3"
+dependencies = [
+ "anyhow",
+ "assert_cmd",
+ "chrono",
+ "clap",
+ "colored",
+ "console",
+ "ctrlc",
+ "dialoguer",
+ "dirs",
+ "indicatif",
+ "libc",
+ "nix 0.29.0",
+ "num_cpus",
+ "predicates",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tabled",
+ "toml",
+]
 
 [[package]]
 name = "memchr"

@@ -29,7 +29,7 @@ pub fn flush_dns_cache() -> MaintenanceResult {
         return MaintenanceResult {
             task,
             success: false,
-            message: "Requires sudo. Run: sudo cooldown maintenance --dns".to_string(),
+            message: "Requires sudo. Run: sudo mac-cooldown maintenance --dns".to_string(),
             requires_sudo: true,
         };
     }
@@ -119,7 +119,7 @@ pub fn free_purgeable_space() -> MaintenanceResult {
                 _ => MaintenanceResult {
                     task,
                     success: false,
-                    message: "Requires sudo. Run: sudo cooldown maintenance --purgeable".to_string(),
+                    message: "Requires sudo. Run: sudo mac-cooldown maintenance --purgeable".to_string(),
                     requires_sudo: true,
                 },
             }
@@ -199,7 +199,7 @@ pub fn clear_time_machine_snapshots() -> MaintenanceResult {
         _ => MaintenanceResult {
             task,
             success: false,
-            message: "Requires sudo. Run: sudo cooldown maintenance --timemachine".to_string(),
+            message: "Requires sudo. Run: sudo mac-cooldown maintenance --timemachine".to_string(),
             requires_sudo: true,
         },
     }
@@ -324,7 +324,7 @@ pub fn run_maintenance(
         println!(
             "  {} Some tasks require sudo. Run: {}",
             "TIP:".yellow().bold(),
-            "sudo cooldown maintenance --all".cyan()
+            "sudo mac-cooldown maintenance --all".cyan()
         );
         println!();
     }

@@ -21,7 +21,7 @@ fn run_interactive_inner() -> Result<()> {
     let thermal = get_thermal_status().unwrap_or_default();
 
     println!();
-    println!("{}", "COOLDOWN".cyan().bold());
+    println!("{}", "MAC-COOLDOWN".cyan().bold());
     println!("{}", "========".dimmed());
 
     // System status

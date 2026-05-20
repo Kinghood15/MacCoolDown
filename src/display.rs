@@ -138,7 +138,7 @@ pub fn display_summary(processes: &[AnalyzedProcess]) {
     );
     println!(
         "     Run {} to fix",
-        "`cooldown clean`".cyan().bold()
+        "`mac-cooldown clean`".cyan().bold()
     );
 }
 

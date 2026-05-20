@@ -1,4 +1,4 @@
-# 🧊 Cooldown
+# 🧊 Mac-Cooldown
 
 **Keep your MacBook cool by managing CPU-heavy processes.**
 
@@ -23,7 +23,7 @@ A fast, Rust-based CLI tool that scans, monitors, and manages resource-hungry pr
 cargo build --release
 
 # Install to PATH
-sudo cp target/release/cooldown /usr/local/bin/cooldown
+sudo cp target/release/mac-mac-cooldown /usr/local/bin/mac-mac-cooldown
 ```
 
 ## Usage
@@ -31,7 +31,7 @@ sudo cp target/release/cooldown /usr/local/bin/cooldown
 ### Interactive Mode (Default)
 
 ```bash
-cooldown
+mac-cooldown
 ```
 
 ```
@@ -81,28 +81,28 @@ COOLDOWN
 ### Commands
 
 ```bash
-cooldown              # Interactive mode with process table
-cooldown status       # Quick system overview
-cooldown scan         # Scan high CPU processes
-cooldown scan -t 30   # Custom threshold
-cooldown clean        # Kill problematic processes
-cooldown clean -n     # Dry run (preview)
+mac-cooldown              # Interactive mode with process table
+mac-cooldown status       # Quick system overview
+mac-cooldown scan         # Scan high CPU processes
+mac-cooldown scan -t 30   # Custom threshold
+mac-cooldown clean        # Kill problematic processes
+mac-cooldown clean -n     # Dry run (preview)
 ```
 
 ### Kill Processes
 
 ```bash
-cooldown kill --orphans      # Kill orphan processes
-cooldown kill --stuck        # Kill stuck processes  
-cooldown kill --old 3d       # Kill processes running > 3 days
-cooldown kill --pid 12345    # Kill specific PID
+mac-cooldown kill --orphans      # Kill orphan processes
+mac-cooldown kill --stuck        # Kill stuck processes  
+mac-cooldown kill --old 3d       # Kill processes running > 3 days
+mac-cooldown kill --pid 12345    # Kill specific PID
 ```
 
 ### Throttle CPU
 
 ```bash
-cooldown throttle 12345 --cpu 50       # Limit PID to 50% CPU
-cooldown throttle 12345 --cpu 30 -d 60 # Limit for 60 seconds
+mac-cooldown throttle 12345 --cpu 50       # Limit PID to 50% CPU
+mac-cooldown throttle 12345 --cpu 30 -d 60 # Limit for 60 seconds
 ```
 
 ### Wrap Command
@@ -110,27 +110,27 @@ cooldown throttle 12345 --cpu 30 -d 60 # Limit for 60 seconds
 Run commands with thermal safety:
 
 ```bash
-cooldown wrap cargo build              # Monitor thermal
-cooldown wrap --cpu 50 npm run build   # Limit to 50% CPU
-cooldown wrap --thermal heavy make     # Kill if thermal heavy
-cooldown wrap --timeout 300 make all   # Timeout after 5min
+mac-cooldown wrap cargo build              # Monitor thermal
+mac-cooldown wrap --cpu 50 npm run build   # Limit to 50% CPU
+mac-cooldown wrap --thermal heavy make     # Kill if thermal heavy
+mac-cooldown wrap --timeout 300 make all   # Timeout after 5min
 ```
 
 ### Maintenance
 
 ```bash
-cooldown maintenance --dns         # Flush DNS cache
-cooldown maintenance --purgeable   # Free purgeable space
-cooldown maintenance --timemachine # Clear Time Machine snapshots
-cooldown maintenance --all         # Run all
+mac-cooldown maintenance --dns         # Flush DNS cache
+mac-cooldown maintenance --purgeable   # Free purgeable space
+mac-cooldown maintenance --timemachine # Clear Time Machine snapshots
+mac-cooldown maintenance --all         # Run all
 ```
 
 ### Whitelist
 
 ```bash
-cooldown whitelist add "my-process"
-cooldown whitelist list
-cooldown whitelist remove "my-process"
+mac-cooldown whitelist add "my-process"
+mac-cooldown whitelist list
+mac-cooldown whitelist remove "my-process"
 ```
 
 ## Process Status
@@ -162,12 +162,12 @@ Automatically protected from being flagged as problematic:
 
 ## Configuration
 
-Config file: `~/Library/Application Support/cooldown/config.toml`
+Config file: `~/Library/Application Support/mac-cooldown/config.toml`
 
 ```bash
-cooldown config --init   # Create default config
-cooldown config --show   # Show current config
-cooldown config --set cpu_threshold=30
+mac-cooldown config --init   # Create default config
+mac-cooldown config --show   # Show current config
+mac-cooldown config --set cpu_threshold=30
 ```
 
 ## Requirements

@@ -103,7 +103,7 @@ pub fn run_watch(config: WatchConfig) -> anyhow::Result<()> {
             } else {
                 println!(
                     "  Run {} to clean",
-                    "`cooldown clean`".cyan()
+                    "`mac-cooldown clean`".cyan()
                 );
             }
         }

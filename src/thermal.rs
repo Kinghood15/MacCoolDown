@@ -434,7 +434,7 @@ pub fn display_thermal_status(status: &ThermalStatus) {
 
     if status.level.is_dangerous() {
         println!(
-            "  {} System is running hot! Consider running: cooldown clean",
+            "  {} System is running hot! Consider running: mac-cooldown clean",
             "WARNING:".red().bold()
         );
         println!();

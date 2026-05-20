@@ -57,7 +57,7 @@ impl Config {
     pub fn config_dir() -> Result<PathBuf> {
         let config_dir = dirs::config_dir()
             .context("Could not find config directory")?
-            .join("cooldown");
+            .join("mac-cooldown");
 
         if !config_dir.exists() {
             fs::create_dir_all(&config_dir)

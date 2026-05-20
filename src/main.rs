@@ -31,7 +31,7 @@ use whitelist::Whitelist;
 use wrapper::run_wrap;
 
 #[derive(Parser)]
-#[command(name = "cooldown")]
+#[command(name = "mac-cooldown")]
 #[command(about = "Keep your MacBook cool by managing CPU-heavy processes")]
 #[command(version = "0.3.1")]
 #[command(long_about = None)]
@@ -629,7 +629,7 @@ fn cmd_thermal(watch: bool, interval: u64) -> anyhow::Result<()> {
                 println!(
                     "  {} Try running with sudo: {}",
                     "TIP:".dimmed(),
-                    "sudo cooldown thermal".cyan()
+                    "sudo mac-cooldown thermal".cyan()
                 );
                 println!();
                 Ok(())

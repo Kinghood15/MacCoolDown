@@ -13,7 +13,7 @@ impl Whitelist {
     pub fn config_path() -> anyhow::Result<PathBuf> {
         let config_dir = dirs::config_dir()
             .context("Could not find config directory")?
-            .join("cooldown");
+            .join("mac-cooldown");
         std::fs::create_dir_all(&config_dir)
             .with_context(|| format!("Could not create config dir {:?}", config_dir))?;
         Ok(config_dir.join("whitelist.json"))
