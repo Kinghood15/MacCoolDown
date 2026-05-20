@@ -359,11 +359,11 @@ fn show_menu(killable: &[&AnalyzedProcess], hot_killable: &[&AnalyzedProcess], w
 
     let selected = &options[selection];
 
-    if selected.contains("Kill HOT") {
-        kill_all(&hot_killable)?;
+    if selected.contains("HOT") && selected.contains("Kill") {
+        kill_all(hot_killable)?;
         run_interactive_inner()
-    } else if selected.contains("Kill WARM") {
-        kill_all(&warm_killable)?;
+    } else if selected.contains("WARM") && selected.contains("Kill") {
+        kill_all(warm_killable)?;
         run_interactive_inner()
     } else if selected.contains("Select from") {
         select_and_kill(killable)?;
