@@ -91,117 +91,126 @@ fn run_interactive_inner() -> Result<()> {
 
     println!();
 
-    // Categorize by heat level
-    let hot: Vec<&AnalyzedProcess> = analyzed.iter()
+    // Categorize KILLABLE processes by heat level
+    let hot_killable: Vec<&AnalyzedProcess> = killable.iter()
         .filter(|ap| ap.info.cpu_percent >= 50.0)
+        .copied()
         .collect();
-    let warm: Vec<&AnalyzedProcess> = analyzed.iter()
+    let warm_killable: Vec<&AnalyzedProcess> = killable.iter()
         .filter(|ap| ap.info.cpu_percent >= 20.0 && ap.info.cpu_percent < 50.0)
+        .copied()
         .collect();
-    let cool: Vec<&AnalyzedProcess> = analyzed.iter()
+    let cool_killable: Vec<&AnalyzedProcess> = killable.iter()
         .filter(|ap| ap.info.cpu_percent < 20.0)
+        .copied()
         .collect();
 
-    // Show heat summary
-    if !hot.is_empty() {
-        let hot_cpu: f32 = hot.iter().map(|ap| ap.info.cpu_percent).sum();
-        let hot_mem: u64 = hot.iter().map(|ap| ap.info.memory_mb).sum();
+    // Show KILLABLE processes by heat level
+    println!("  {}", "KILLABLE PROCESSES".bold().underline());
+
+    if !hot_killable.is_empty() {
+        let hot_cpu: f32 = hot_killable.iter().map(|ap| ap.info.cpu_percent).sum();
         println!(
-            "  {} {} process - {:.0}% CPU, {}MB RAM",
-            "🔥 HOT (>50%):".red().bold(),
-            hot.len(),
-            hot_cpu,
-            hot_mem
+            "  {} {} process ({:.0}% CPU) - có thể kill ngay!",
+            "🔥 HOT:".red().bold(),
+            hot_killable.len(),
+            hot_cpu
         );
-        for ap in &hot {
-            let status = if ap.is_system_app {
-                "protected".blue()
-            } else if ap.issue.is_problematic() {
-                format!("{}", ap.issue.label()).red()
+        for ap in &hot_killable {
+            let issue = if ap.issue.is_problematic() {
+                format!(" [{}]", ap.issue.label()).red().to_string()
             } else {
-                "killable".yellow()
+                String::new()
             };
             println!(
-                "       {} [{}] {} - {:.0}% CPU, {}MB, {} ({})",
+                "       {} [{}] {} - {:.0}% CPU, {}MB, {}{}",
                 "•".red(),
                 ap.info.pid.to_string().bold(),
                 ap.info.name.red().bold(),
                 ap.info.cpu_percent,
                 ap.info.memory_mb,
                 ap.running_human(),
-                status
+                issue
             );
         }
-        println!();
     }
 
-    if !warm.is_empty() {
-        let warm_cpu: f32 = warm.iter().map(|ap| ap.info.cpu_percent).sum();
-        let warm_mem: u64 = warm.iter().map(|ap| ap.info.memory_mb).sum();
+    if !warm_killable.is_empty() {
+        let warm_cpu: f32 = warm_killable.iter().map(|ap| ap.info.cpu_percent).sum();
         println!(
-            "  {} {} process - {:.0}% CPU, {}MB RAM",
-            "🌡️ WARM (20-50%):".yellow().bold(),
-            warm.len(),
-            warm_cpu,
-            warm_mem
+            "  {} {} process ({:.0}% CPU)",
+            "🌡️ WARM:".yellow().bold(),
+            warm_killable.len(),
+            warm_cpu
         );
-        for ap in &warm {
-            let status = if ap.is_system_app {
-                "protected".blue()
-            } else {
-                "killable".yellow()
-            };
+        for ap in &warm_killable {
             println!(
-                "       {} [{}] {} - {:.0}% CPU, {}MB, {} ({})",
+                "       {} [{}] {} - {:.0}% CPU, {}MB, {}",
                 "•".yellow(),
                 ap.info.pid,
                 ap.info.name.yellow(),
                 ap.info.cpu_percent,
                 ap.info.memory_mb,
-                ap.running_human(),
-                status
+                ap.running_human()
             );
         }
-        println!();
     }
 
-    if !cool.is_empty() {
-        let cool_cpu: f32 = cool.iter().map(|ap| ap.info.cpu_percent).sum();
+    if !cool_killable.is_empty() {
         println!(
-            "  {} {} process - {:.0}% CPU (không làm nóng máy)",
-            "❄️ COOL (<20%):".green(),
-            cool.len(),
-            cool_cpu
+            "  {} {} process (<20% CPU)",
+            "❄️ COOL:".green(),
+            cool_killable.len()
         );
-        // Show claude sessions even if cool
-        let cool_claude: Vec<_> = cool.iter().filter(|ap| ap.info.name.to_lowercase().starts_with("claude")).collect();
-        if !cool_claude.is_empty() {
-            for ap in cool_claude {
-                println!(
-                    "       {} [{}] {} - {:.0}% CPU, {}MB, {} (idle)",
-                    "•".green(),
-                    ap.info.pid,
-                    ap.info.name.green(),
-                    ap.info.cpu_percent,
-                    ap.info.memory_mb,
-                    ap.running_human()
-                );
-            }
+        for ap in cool_killable.iter().take(3) {
+            println!(
+                "       {} [{}] {} - {:.0}% CPU",
+                "•".green(),
+                ap.info.pid,
+                ap.info.name.dimmed(),
+                ap.info.cpu_percent
+            );
         }
-        println!();
+        if cool_killable.len() > 3 {
+            println!("       ... +{} more", cool_killable.len() - 3);
+        }
     }
+
+    if killable.is_empty() {
+        println!("  {} Không có process nào có thể kill", "✓".green());
+    }
+
+    println!();
+
+    // Show PROTECTED processes (dev tools, system apps)
+    println!("  {}", "PROTECTED (không kill)".blue().bold());
+    for ap in protected.iter().take(5) {
+        let heat = if ap.info.cpu_percent >= 50.0 {
+            "🔥".to_string()
+        } else if ap.info.cpu_percent >= 20.0 {
+            "🌡️".to_string()
+        } else {
+            "❄️".to_string()
+        };
+        println!(
+            "       {} [{}] {} - {:.0}% CPU, {}MB, {}",
+            heat,
+            ap.info.pid,
+            ap.info.name.blue(),
+            ap.info.cpu_percent,
+            ap.info.memory_mb,
+            ap.running_human()
+        );
+    }
+    if protected.len() > 5 {
+        println!("       ... +{} more", protected.len() - 5);
+    }
+    println!();
 
     // Summary line
     println!("  {}", "─".repeat(50));
-    println!(
-        "  {} {} killable | {} protected",
-        "📊".dimmed(),
-        killable.len(),
-        protected.len()
-    );
-    println!();
 
-    show_menu(&killable, &hot, &warm)
+    show_menu(&killable, &hot_killable, &warm_killable)
 }
 
 #[allow(dead_code)]
@@ -307,26 +316,24 @@ fn format_breakdown(groups: &[(String, usize, f32)]) -> String {
     result
 }
 
-fn show_menu(killable: &[&AnalyzedProcess], hot: &[&AnalyzedProcess], warm: &[&AnalyzedProcess]) -> Result<()> {
+fn show_menu(killable: &[&AnalyzedProcess], hot_killable: &[&AnalyzedProcess], warm_killable: &[&AnalyzedProcess]) -> Result<()> {
     let mut options = vec![];
 
     // Option to kill HOT processes (>50% CPU)
-    let hot_killable: Vec<_> = hot.iter().filter(|ap| !ap.is_system_app && !ap.whitelisted).copied().collect();
     if !hot_killable.is_empty() {
         let total_cpu: f32 = hot_killable.iter().map(|ap| ap.info.cpu_percent).sum();
         options.push(format!(
-            "🔥 Kill HOT processes ({} proc, {:.0}% CPU)",
+            "🔥 Kill {} HOT ({:.0}% CPU)",
             hot_killable.len(),
             total_cpu
         ));
     }
 
     // Option to kill WARM processes (20-50% CPU)
-    let warm_killable: Vec<_> = warm.iter().filter(|ap| !ap.is_system_app && !ap.whitelisted).copied().collect();
     if !warm_killable.is_empty() {
         let total_cpu: f32 = warm_killable.iter().map(|ap| ap.info.cpu_percent).sum();
         options.push(format!(
-            "🌡️ Kill WARM processes ({} proc, {:.0}% CPU)",
+            "🌡️ Kill {} WARM ({:.0}% CPU)",
             warm_killable.len(),
             total_cpu
         ));
