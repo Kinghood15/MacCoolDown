@@ -1,6 +1,6 @@
 use anyhow::Result;
 use colored::*;
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{theme::ColorfulTheme, Select};
 
 use crate::analyzer::{analyze_processes, AnalyzedProcess};
 use crate::killer::kill_process;
@@ -513,13 +513,19 @@ fn select_and_kill(processes: &[&AnalyzedProcess]) -> Result<()> {
         println!();
         std::thread::sleep(std::time::Duration::from_millis(300));
 
-        // Ask if want to kill more
-        let continue_kill = Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Kill another process?")
-            .default(false)
+        // Ask if want to kill more using Select instead of Confirm
+        let next_options = vec![
+            "Kill another process",
+            "← Back to main menu",
+        ];
+
+        let next_selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("What next?")
+            .items(&next_options)
+            .default(1)
             .interact()?;
 
-        if !continue_kill {
+        if next_selection == 1 {
             return Ok(());
         }
         println!();
