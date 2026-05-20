@@ -53,9 +53,9 @@ fn run_interactive_inner() -> Result<()> {
     );
     println!();
 
-    // Scan with low threshold to catch everything
+    // Scan with very low threshold to catch all active processes
     let whitelist = Whitelist::load()?;
-    let processes = scan_processes(10.0); // Scan từ 10% CPU
+    let processes = scan_processes(5.0); // Scan từ 5% CPU để bắt tất cả
     let analyzed = analyze_processes(&processes, &whitelist);
 
     // Sort all by CPU descending
@@ -86,7 +86,7 @@ fn run_interactive_inner() -> Result<()> {
     );
     println!("  {}", "─".repeat(70));
 
-    for ap in all_sorted.iter().take(15) {
+    for ap in all_sorted.iter().take(20) {
         let status = if ap.whitelisted {
             "[WL]".cyan()
         } else if ap.is_system_app {
@@ -133,8 +133,8 @@ fn run_interactive_inner() -> Result<()> {
         );
     }
 
-    if all_sorted.len() > 15 {
-        println!("  {} ... and {} more", "".dimmed(), all_sorted.len() - 15);
+    if all_sorted.len() > 20 {
+        println!("  {} ... and {} more", "".dimmed(), all_sorted.len() - 20);
     }
 
     println!("  {}", "─".repeat(70));
@@ -156,21 +156,18 @@ fn run_interactive_inner() -> Result<()> {
         );
     }
 
-    // Detailed breakdown by process name
-    let killable_breakdown = group_by_name(&killable);
-    let protected_breakdown = group_by_name(&protected);
-
+    // Detailed breakdown - show each process with PID
     println!(
         "  {} {} killable: {}",
         "ℹ".blue(),
         killable.len(),
-        format_breakdown(&killable_breakdown)
+        format_process_list(&killable)
     );
     println!(
         "  {} {} protected: {}",
         "🔒".dimmed(),
         protected.len(),
-        format_breakdown(&protected_breakdown)
+        format_process_list(&protected)
     );
     println!();
 
@@ -210,6 +207,7 @@ fn truncate(s: &str, max: usize) -> String {
     }
 }
 
+#[allow(dead_code)]
 fn group_by_name(processes: &[&AnalyzedProcess]) -> Vec<(String, usize, f32)> {
     use std::collections::HashMap;
     let mut groups: HashMap<String, (usize, f32)> = HashMap::new();
@@ -230,6 +228,28 @@ fn group_by_name(processes: &[&AnalyzedProcess]) -> Vec<(String, usize, f32)> {
     result
 }
 
+fn format_process_list(processes: &[&AnalyzedProcess]) -> String {
+    if processes.is_empty() {
+        return "none".to_string();
+    }
+
+    // Show each process with PID (top 5)
+    let items: Vec<String> = processes
+        .iter()
+        .take(5)
+        .map(|ap| {
+            format!("{}[{}] ({:.0}%)", ap.info.name, ap.info.pid, ap.info.cpu_percent)
+        })
+        .collect();
+
+    let mut result = items.join(", ");
+    if processes.len() > 5 {
+        result.push_str(&format!(" +{} more", processes.len() - 5));
+    }
+    result
+}
+
+#[allow(dead_code)]
 fn format_breakdown(groups: &[(String, usize, f32)]) -> String {
     if groups.is_empty() {
         return "none".to_string();
