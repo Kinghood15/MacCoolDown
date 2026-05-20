@@ -1,6 +1,6 @@
 use anyhow::Result;
 use colored::*;
-use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect, Select};
+use dialoguer::{theme::ColorfulTheme, Confirm, Select};
 
 use crate::analyzer::{analyze_processes, AnalyzedProcess};
 use crate::killer::kill_process;
@@ -388,27 +388,46 @@ fn select_and_kill(processes: &[&AnalyzedProcess]) -> Result<()> {
         })
         .collect();
 
-    let selections = MultiSelect::with_theme(&ColorfulTheme::default())
-        .with_prompt("Select processes (Space to toggle, Enter to confirm)")
-        .items(&items)
+    let mut items_with_back = items.clone();
+    items_with_back.push("← Back".to_string());
+
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Select process to kill")
+        .items(&items_with_back)
+        .default(0)
         .interact()?;
 
-    if selections.is_empty() {
-        println!("  {} No processes selected.", "INFO".dimmed());
-        println!();
+    // Back option
+    if selection == items.len() {
         return Ok(());
     }
 
-    for idx in selections {
-        let ap = processes[idx];
+    let ap = processes[selection];
+    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt(format!(
+            "Kill {} (PID {})? ({:.0}% CPU, {}MB)",
+            ap.info.name, ap.info.pid, ap.info.cpu_percent, ap.info.memory_mb
+        ))
+        .default(false)
+        .interact()?;
+
+    if confirm {
         let result = kill_process(ap.info.pid, &ap.info.name, false);
         if result.success {
             println!("  {} Killed {}", "OK".green().bold(), ap.info.name);
+        } else {
+            println!(
+                "  {} Failed: {}",
+                "ERR".red().bold(),
+                result.error.unwrap_or_default()
+            );
         }
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    } else {
+        println!("  {} Cancelled.", "INFO".dimmed());
     }
-
-    std::thread::sleep(std::time::Duration::from_millis(500));
     println!();
+
     Ok(())
 }
 
