@@ -332,41 +332,78 @@ fn show_menu_no_issues() -> Result<()> {
 
 fn kill_all(processes: &[&AnalyzedProcess]) -> Result<()> {
     if processes.is_empty() {
+        println!("  {} No problematic processes to kill.", "INFO".dimmed());
+        println!();
         return Ok(());
     }
 
     let total_cpu: f32 = processes.iter().map(|ap| ap.info.cpu_percent).sum();
     let total_mem: u64 = processes.iter().map(|ap| ap.info.memory_mb).sum();
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt(format!(
-            "Kill {} process(es)? (free {:.0}% CPU, {}MB RAM)",
-            processes.len(),
-            total_cpu,
-            total_mem
-        ))
-        .default(false)
+    println!();
+    println!("  {} Processes to kill:", "TARGET".yellow().bold());
+    for ap in processes {
+        println!(
+            "    • {} (PID {}) - {:.0}% CPU, {}MB",
+            ap.info.name, ap.info.pid, ap.info.cpu_percent, ap.info.memory_mb
+        );
+    }
+    println!();
+
+    let kill_options = vec![
+        format!("Kill all {} (SIGTERM)", processes.len()),
+        format!("Force kill all {} (SIGKILL)", processes.len()),
+        "← Cancel".to_string(),
+    ];
+
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt(format!("Free {:.0}% CPU, {}MB RAM", total_cpu, total_mem))
+        .items(&kill_options)
+        .default(0)
         .interact()?;
 
-    if !confirm {
-        println!("  {} Cancelled.", "INFO".dimmed());
-        println!();
-        return Ok(());
-    }
+    let force = match selection {
+        0 => false,
+        1 => true,
+        _ => {
+            println!("  {} Cancelled.", "INFO".dimmed());
+            println!();
+            return Ok(());
+        }
+    };
+
+    println!();
+    let mut killed = 0;
+    let mut failed = 0;
 
     for ap in processes {
-        let result = kill_process(ap.info.pid, &ap.info.name, false);
+        let result = kill_process(ap.info.pid, &ap.info.name, force);
         if result.success {
-            println!("  {} Killed {}", "OK".green().bold(), ap.info.name);
+            println!(
+                "  {} {} (PID {})",
+                "KILLED".green().bold(),
+                ap.info.name,
+                ap.info.pid
+            );
+            killed += 1;
         } else {
             println!(
-                "  {} Failed {}: {}",
-                "ERR".red().bold(),
+                "  {} {} - {}",
+                "FAILED".red().bold(),
                 ap.info.name,
                 result.error.unwrap_or_default()
             );
+            failed += 1;
         }
     }
+
+    println!();
+    println!(
+        "  {} {} killed, {} failed",
+        "DONE".cyan().bold(),
+        killed,
+        failed
+    );
 
     std::thread::sleep(std::time::Duration::from_millis(500));
     println!();
@@ -375,60 +412,136 @@ fn kill_all(processes: &[&AnalyzedProcess]) -> Result<()> {
 
 fn select_and_kill(processes: &[&AnalyzedProcess]) -> Result<()> {
     if processes.is_empty() {
+        println!("  {} No killable processes.", "INFO".dimmed());
+        println!();
         return Ok(());
     }
 
-    let items: Vec<String> = processes
-        .iter()
-        .map(|ap| {
-            format!(
-                "[{}] {} - {:.0}% CPU, {}MB",
-                ap.info.pid, ap.info.name, ap.info.cpu_percent, ap.info.memory_mb
-            )
-        })
-        .collect();
+    loop {
+        let items: Vec<String> = processes
+            .iter()
+            .map(|ap| {
+                format!(
+                    "[{}] {} - {:.0}% CPU, {}MB",
+                    ap.info.pid, ap.info.name, ap.info.cpu_percent, ap.info.memory_mb
+                )
+            })
+            .collect();
 
-    let mut items_with_back = items.clone();
-    items_with_back.push("← Back".to_string());
+        let mut items_with_options = items.clone();
+        items_with_options.push("← Back to main menu".to_string());
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Select process to kill")
-        .items(&items_with_back)
-        .default(0)
-        .interact()?;
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Select process to kill")
+            .items(&items_with_options)
+            .default(0)
+            .interact()?;
 
-    // Back option
-    if selection == items.len() {
-        return Ok(());
-    }
-
-    let ap = processes[selection];
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt(format!(
-            "Kill {} (PID {})? ({:.0}% CPU, {}MB)",
-            ap.info.name, ap.info.pid, ap.info.cpu_percent, ap.info.memory_mb
-        ))
-        .default(false)
-        .interact()?;
-
-    if confirm {
-        let result = kill_process(ap.info.pid, &ap.info.name, false);
-        if result.success {
-            println!("  {} Killed {}", "OK".green().bold(), ap.info.name);
-        } else {
-            println!(
-                "  {} Failed: {}",
-                "ERR".red().bold(),
-                result.error.unwrap_or_default()
-            );
+        // Back option
+        if selection == items.len() {
+            return Ok(());
         }
-        std::thread::sleep(std::time::Duration::from_millis(500));
-    } else {
-        println!("  {} Cancelled.", "INFO".dimmed());
-    }
-    println!();
 
-    Ok(())
+        let ap = processes[selection];
+        println!();
+        println!(
+            "  {} {} (PID {})",
+            "TARGET:".yellow().bold(),
+            ap.info.name.yellow(),
+            ap.info.pid
+        );
+        println!(
+            "  {} {:.0}% CPU, {}MB RAM, running {}",
+            "INFO:".dimmed(),
+            ap.info.cpu_percent,
+            ap.info.memory_mb,
+            ap.running_human()
+        );
+        println!();
+
+        let kill_options = vec![
+            "Kill (SIGTERM - graceful)",
+            "Force Kill (SIGKILL - immediate)",
+            "← Cancel",
+        ];
+
+        let kill_selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("How to kill?")
+            .items(&kill_options)
+            .default(0)
+            .interact()?;
+
+        match kill_selection {
+            0 => {
+                // SIGTERM
+                let result = kill_process(ap.info.pid, &ap.info.name, false);
+                if result.success {
+                    println!("  {} Sent SIGTERM to {}", "OK".green().bold(), ap.info.name);
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+                    // Check if process still exists
+                    if process_still_running(ap.info.pid) {
+                        println!("  {} Process still running. Try Force Kill?", "WARN".yellow());
+                    } else {
+                        println!("  {} Process terminated.", "OK".green());
+                    }
+                } else {
+                    println!(
+                        "  {} Failed: {}",
+                        "ERR".red().bold(),
+                        result.error.unwrap_or_default()
+                    );
+                }
+            }
+            1 => {
+                // SIGKILL
+                let result = kill_process(ap.info.pid, &ap.info.name, true);
+                if result.success {
+                    println!("  {} Force killed {}", "OK".green().bold(), ap.info.name);
+                } else {
+                    println!(
+                        "  {} Failed: {}",
+                        "ERR".red().bold(),
+                        result.error.unwrap_or_default()
+                    );
+                }
+            }
+            _ => {
+                println!("  {} Cancelled.", "INFO".dimmed());
+            }
+        }
+
+        println!();
+        std::thread::sleep(std::time::Duration::from_millis(300));
+
+        // Ask if want to kill more
+        let continue_kill = Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Kill another process?")
+            .default(false)
+            .interact()?;
+
+        if !continue_kill {
+            return Ok(());
+        }
+        println!();
+    }
+}
+
+fn process_still_running(pid: u32) -> bool {
+    #[cfg(unix)]
+    {
+        use nix::sys::signal::kill;
+        use nix::unistd::Pid as NixPid;
+        use nix::errno::Errno;
+        match kill(NixPid::from_raw(pid as i32), None) {
+            Ok(()) => true,
+            Err(Errno::ESRCH) => false,
+            Err(_) => false,
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        false
+    }
 }
 
 fn throttle_interactive(processes: &[&AnalyzedProcess]) -> Result<()> {
