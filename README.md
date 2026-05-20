@@ -6,14 +6,15 @@ A fast, Rust-based CLI tool that scans, monitors, and manages resource-hungry pr
 
 ## Features
 
-- **Smart Scanning** - Detects orphan, stuck, and long-running high-CPU processes
-- **Process Table** - View top 15 processes sorted by CPU with status indicators
+- **Smart Scanning** - Detects orphan, stuck, and long-running high-CPU processes (10% threshold)
+- **Process Table** - View top 15 processes sorted by CPU with detailed breakdown
 - **Protected Apps** - Auto-protects system apps, dev tools (claude, node, cargo, etc.)
-- **Thermal Monitoring** - CPU temperature, fan speed, thermal level
+- **Flexible Kill** - Choose between SIGTERM (graceful) or SIGKILL (force)
+- **Thermal Monitoring** - CPU temperature, thermal level indicator
 - **Battery Aware** - Adjusts thresholds based on power source
 - **CPU Throttling** - Limit any process to a specific CPU percentage
 - **Maintenance Tasks** - DNS flush, memory purge, Time Machine cleanup
-- **Interactive Menu** - Easy selection with arrow keys
+- **Interactive Menu** - Easy navigation with arrow keys and back buttons
 
 ## Installation
 
@@ -37,28 +38,44 @@ cooldown
 COOLDOWN
 ========
 
-  System: Load 3.60 | CPU 34% | Mem 12GB/16GB
-  Thermal: ❄️ Nominal | 45°C | 🔌 100%
+  System: Load 3.52 | CPU 38% | Mem 13GB/16GB
+  Thermal: ❄️ Nominal | 🔌 100%
 
   ALL PROCESSES (sorted by CPU)
   ──────────────────────────────────────────────────────────────────────
-    PID  NAME                      CPU%    MEM      TIME  STATUS
+     PID  NAME                      CPU%     MEM      TIME  STATUS
   ──────────────────────────────────────────────────────────────────────
-   40632  claude                   101%      1M    4d 5h  [SYS]
-   92281  claude                    60%    304M    1d 2h  [SYS]
-   77670  com.apple.WebKit.Web…     27%    195M      56m  [OK]
+   40632  claude                    102%      1M     4d 6h  [SYS]
+    7409  Figma                      22%     66M     1d 3h  [OK]
+   87266  lldb-rpc-server            16%    825M     1d 3h  [OK]
   ──────────────────────────────────────────────────────────────────────
 
-  ⚠ 1 killable problematic (45% CPU)
-  ℹ 5 killable | 3 protected
+  ℹ 3 killable: Figma (22%), lldb-rpc-server (16%), qemu (12%)
+  🔒 1 protected: claude (102%)
 
 ? Action
-❯ Kill all problematic (1 proc, 45% CPU)
-  Select from 5 killable processes
+❯ Select from 3 killable processes
   Throttle a process
   Run maintenance
   Refresh
   Exit
+```
+
+### Kill Process Flow
+
+```
+? Select process to kill
+❯ [7409] Figma - 22% CPU, 66MB
+  [87266] lldb-rpc-server - 16% CPU, 825MB
+  ← Back to main menu
+
+  TARGET: Figma (PID 7409)
+  INFO: 22% CPU, 66MB RAM, running 1d 3h
+
+? How to kill?
+❯ Kill (SIGTERM - graceful)
+  Force Kill (SIGKILL - immediate)
+  ← Cancel
 ```
 
 ### Commands
