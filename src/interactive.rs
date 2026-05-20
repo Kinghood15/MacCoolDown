@@ -140,7 +140,7 @@ fn run_interactive_inner() -> Result<()> {
     println!("  {}", "─".repeat(70));
     println!();
 
-    // Summary
+    // Summary with detailed breakdown
     let killable_problematic: Vec<&AnalyzedProcess> = killable
         .iter()
         .filter(|ap| ap.issue.is_problematic())
@@ -156,11 +156,21 @@ fn run_interactive_inner() -> Result<()> {
         );
     }
 
+    // Detailed breakdown by process name
+    let killable_breakdown = group_by_name(&killable);
+    let protected_breakdown = group_by_name(&protected);
+
     println!(
-        "  {} {} killable | {} protected",
+        "  {} {} killable: {}",
         "ℹ".blue(),
         killable.len(),
-        protected.len()
+        format_breakdown(&killable_breakdown)
+    );
+    println!(
+        "  {} {} protected: {}",
+        "🔒".dimmed(),
+        protected.len(),
+        format_breakdown(&protected_breakdown)
     );
     println!();
 
@@ -198,6 +208,51 @@ fn truncate(s: &str, max: usize) -> String {
         let truncated: String = s.chars().take(max - 1).collect();
         format!("{}…", truncated)
     }
+}
+
+fn group_by_name(processes: &[&AnalyzedProcess]) -> Vec<(String, usize, f32)> {
+    use std::collections::HashMap;
+    let mut groups: HashMap<String, (usize, f32)> = HashMap::new();
+
+    for ap in processes {
+        let entry = groups.entry(ap.info.name.clone()).or_insert((0, 0.0));
+        entry.0 += 1;
+        entry.1 += ap.info.cpu_percent;
+    }
+
+    let mut result: Vec<(String, usize, f32)> = groups
+        .into_iter()
+        .map(|(name, (count, cpu))| (name, count, cpu))
+        .collect();
+
+    // Sort by CPU descending
+    result.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
+    result
+}
+
+fn format_breakdown(groups: &[(String, usize, f32)]) -> String {
+    if groups.is_empty() {
+        return "none".to_string();
+    }
+
+    // Show top 5 process names
+    let items: Vec<String> = groups
+        .iter()
+        .take(5)
+        .map(|(name, count, cpu)| {
+            if *count > 1 {
+                format!("{}x{} ({:.0}%)", name, count, cpu)
+            } else {
+                format!("{} ({:.0}%)", name, cpu)
+            }
+        })
+        .collect();
+
+    let mut result = items.join(", ");
+    if groups.len() > 5 {
+        result.push_str(&format!(" +{} more", groups.len() - 5));
+    }
+    result
 }
 
 fn show_menu(killable: &[&AnalyzedProcess], problematic: &[&AnalyzedProcess]) -> Result<()> {
