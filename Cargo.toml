@@ -1,9 +1,15 @@
 [package]
 name = "mac-cooldown"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 description = "CLI tool to manage CPU-heavy processes and keep MacBook cool"
 license = "MIT"
+repository = "https://github.com/Kinghood15/MacCoolDown"
+homepage = "https://github.com/Kinghood15/MacCoolDown"
+readme = "README.md"
+keywords = ["macos", "cli", "process", "cpu", "thermal"]
+categories = ["command-line-utilities", "development-tools"]
+authors = ["Kinghood15"]
 
 [[bin]]
 name = "mac-cooldown"
