@@ -10,6 +10,7 @@ readme = "README.md"
 keywords = ["macos", "cli", "process", "cpu", "thermal"]
 categories = ["command-line-utilities", "development-tools"]
 authors = ["Kinghood15"]
+include = ["src/**/*", "Cargo.toml", "README.md"]
 
 [[bin]]
 name = "mac-cooldown"
