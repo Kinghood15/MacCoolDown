@@ -23,7 +23,7 @@ A fast, Rust-based CLI tool that scans, monitors, and manages resource-hungry pr
 cargo build --release
 
 # Install to PATH
-sudo cp target/release/mac-mac-cooldown /usr/local/bin/mac-mac-cooldown
+sudo cp target/release/mac-cooldown /usr/local/bin/mac-cooldown
 ```
 
 ## Usage
@@ -35,8 +35,8 @@ mac-cooldown
 ```
 
 ```
-COOLDOWN
-========
+MAC-COOLDOWN
+============
 
   System: Load 3.52 | CPU 38% | Mem 13GB/16GB
   Thermal: ❄️ Nominal | 🔌 100%
