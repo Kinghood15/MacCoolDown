@@ -53,10 +53,24 @@ fn run_interactive_inner() -> Result<()> {
     );
     println!();
 
-    // Scan with very low threshold to catch all active processes
+    // Scan ALL processes to catch idle sessions of important apps
     let whitelist = Whitelist::load()?;
-    let processes = scan_processes(5.0); // Scan từ 5% CPU để bắt tất cả
-    let analyzed = analyze_processes(&processes, &whitelist);
+    let all_processes = scan_processes(0.0);
+    let analyzed = analyze_processes(&all_processes, &whitelist);
+
+    // Always show ALL instances of these apps (regardless of CPU)
+    const ALWAYS_SHOW_ALL: &[&str] = &["claude"];
+
+    fn is_always_show(name: &str) -> bool {
+        let name_lower = name.to_lowercase();
+        ALWAYS_SHOW_ALL.iter().any(|&app| name_lower.starts_with(app))
+    }
+
+    // Filter: CPU >= 5% OR is in always-show list
+    let analyzed: Vec<_> = analyzed
+        .into_iter()
+        .filter(|ap| ap.info.cpu_percent >= 5.0 || is_always_show(&ap.info.name))
+        .collect();
 
     // Sort all by CPU descending
     let mut all_sorted: Vec<&AnalyzedProcess> = analyzed.iter().collect();
