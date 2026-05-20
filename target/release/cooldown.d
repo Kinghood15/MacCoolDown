@@ -1,0 +1,1 @@
+/Volumes/Mac/cooldown/target/release/cooldown: /Volumes/Mac/cooldown/src/analyzer.rs /Volumes/Mac/cooldown/src/display.rs /Volumes/Mac/cooldown/src/killer.rs /Volumes/Mac/cooldown/src/lib.rs /Volumes/Mac/cooldown/src/main.rs /Volumes/Mac/cooldown/src/scanner.rs /Volumes/Mac/cooldown/src/watcher.rs /Volumes/Mac/cooldown/src/whitelist.rs
