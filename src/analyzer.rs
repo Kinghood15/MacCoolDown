@@ -1,6 +1,65 @@
 use crate::scanner::ProcessInfo;
 use crate::whitelist::Whitelist;
 
+// System apps that should never be killed automatically
+const SYSTEM_APPS: &[&str] = &[
+    "Safari",
+    "Finder",
+    "Dock",
+    "WindowServer",
+    "SystemUIServer",
+    "loginwindow",
+    "launchd",
+    "kernel_task",
+    "mds",
+    "mds_stores",
+    "mdworker",
+    "Spotlight",
+    "coreaudiod",
+    "airportd",
+    "bluetoothd",
+    "configd",
+    "diskarbitrationd",
+    "diskmanagementd",
+    "coreservicesd",
+    "securityd",
+    "UserEventAgent",
+    "cfprefsd",
+    "distnoted",
+    "trustd",
+    "opendirectoryd",
+    "nsurlsessiond",
+    "CommCenter",
+    "AppleIDAuthAgent",
+    "IMDPersistenceAgent",
+    "CalendarAgent",
+    "AddressBookSourceSync",
+    "Notes",
+    "Mail",
+    "Messages",
+    "FaceTime",
+    "Photos",
+    "Music",
+    "TV",
+    "Podcasts",
+    "News",
+    "Stocks",
+    "Home",
+    "Weather",
+    "Maps",
+    "App Store",
+    "System Preferences",
+    "System Settings",
+    "Activity Monitor",
+    "Terminal",
+    "iTerm2",
+    "Xcode",
+    "Simulator",
+    "ControlCenter",
+    "NotificationCenter",
+    "Siri",
+];
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ProcessIssue {
     Orphan,
@@ -38,6 +97,13 @@ pub struct AnalyzedProcess {
     pub issue: ProcessIssue,
     pub running_secs: u64,
     pub whitelisted: bool,
+    pub is_system_app: bool,
+}
+
+pub fn is_system_app(name: &str) -> bool {
+    SYSTEM_APPS.iter().any(|&sys| {
+        name.eq_ignore_ascii_case(sys) || name.starts_with(sys)
+    })
 }
 
 impl AnalyzedProcess {
@@ -90,11 +156,13 @@ pub fn analyze_processes(
             let issue = analyze_process(proc);
             let running_secs = now.saturating_sub(proc.start_time);
             let whitelisted = whitelist.matches(proc);
+            let system_app = is_system_app(&proc.name);
             AnalyzedProcess {
                 info: proc.clone(),
                 issue,
                 running_secs,
                 whitelisted,
+                is_system_app: system_app,
             }
         })
         .collect()

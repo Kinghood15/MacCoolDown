@@ -1,6 +1,12 @@
 pub mod analyzer;
+pub mod config;
 pub mod display;
+pub mod interactive;
 pub mod killer;
+pub mod maintenance;
 pub mod scanner;
+pub mod thermal;
+pub mod throttle;
 pub mod watcher;
 pub mod whitelist;
+pub mod wrapper;

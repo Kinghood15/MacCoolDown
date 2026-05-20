@@ -4,133 +4,174 @@ CLI tool to manage CPU-heavy processes and keep your MacBook cool.
 
 ## Features
 
-- Scan processes above a CPU threshold with issue detection (orphan, stuck, old)
-- Clean problematic processes with whitelist support
-- Target specific process types: orphans, stuck, or old processes
-- Watch mode with continuous monitoring and optional auto-clean
-- JSON output for scripting
-- Persistent whitelist stored in `~/.config/cooldown/whitelist.json`
+- **Realtime dashboard** - Live monitoring with auto-refresh (default mode)
+- **Interactive menu** - Select and kill processes with confirmation
+- **Smart detection** - Identifies orphan, stuck, and old processes
+- **System app protection** - Auto-whitelist Safari, Finder, etc.
+- **Thermal monitoring** - CPU temperature, fan speed, thermal level
+- **Battery aware** - Lower thresholds when on battery power
+- **CPU throttling** - Limit any process CPU usage via SIGSTOP/SIGCONT
+- **Wrap command** - Run commands with thermal safety and CPU limits
+- **Maintenance tasks** - DNS flush, memory purge, Time Machine cleanup
 
 ## Installation
 
 ```bash
-cd /Volumes/Mac/cooldown
 cargo build --release
-# Copy binary to PATH (optional)
-cp target/release/cooldown /usr/local/bin/cooldown
+sudo cp target/release/cooldown /usr/local/bin/cooldown
 ```
 
 ## Usage
 
-### Scan
+### Default: Realtime Dashboard
 
-Display all processes using >= 50% CPU:
-
-```
-cooldown scan
-cooldown scan --threshold 20
-cooldown scan --json
-```
-
-### Status
-
-System overview (load, CPU, memory, top processes):
+Just run `cooldown` to start the realtime dashboard:
 
 ```
-cooldown status
+COOLDOWN REALTIME
+=================
+
+  System: Load 3.60 | CPU 34% | Mem 12GB/16GB (75%)
+  Thermal: ❄️ Nominal | CPU 45°C | Fan 2500rpm | 🔌 AC Power
+
+  ⚠ PROBLEMATIC 1 process(es) - 99% CPU, 150MB RAM
+
+    • [40632] claude               99% CPU   150MB Orphan process
+
+  TOP PROCESSES
+       PID  NAME                    CPU%  MEM MB  RUNTIME   STATUS
+    ──────────────────────────────────────────────────────────────────
+    40632  claude                  99%     150    4d 5h    [ORPHAN]
+    73333  Chrome Helper          125%     800      2h    [OK]
+    96564  qemu-system-aarch64     72%    2048      5h    [OK]
+
+  Last update: 10:45:32 | Press Ctrl+C to stop
 ```
 
-### Clean
+Press `Ctrl+C` to stop and enter interactive menu.
 
-Kill all detected orphan/stuck/old processes (respects whitelist):
+### Interactive Menu
 
-```
-cooldown clean --dry-run     # preview only
-cooldown clean               # SIGTERM
-cooldown clean --force       # SIGKILL
+```bash
+cooldown menu
 ```
 
-### Kill
+Select actions with arrow keys:
+- Kill all problematic processes
+- Select specific processes to kill
+- Quick throttle (limit CPU to 50%)
+- Run maintenance tasks
 
-Target specific process categories:
+### Other Commands
 
+```bash
+cooldown status          # Quick system overview
+cooldown scan            # Scan high CPU processes
+cooldown scan -t 30      # Custom threshold (30%)
+cooldown clean           # Kill problematic processes
+cooldown clean --dry-run # Preview what would be killed
 ```
-cooldown kill --orphans --dry-run
-cooldown kill --stuck
-cooldown kill --old 3d           # processes running > 3 days
-cooldown kill --old 12h          # processes running > 12 hours
-cooldown kill --pid 38902        # kill a specific PID
-cooldown kill --orphans --force  # SIGKILL
+
+### Kill Specific Processes
+
+```bash
+cooldown kill --orphans       # Kill orphan processes
+cooldown kill --stuck         # Kill stuck processes
+cooldown kill --old 3d        # Kill processes running > 3 days
+cooldown kill --pid 12345     # Kill specific PID
 ```
 
-### Watch
+### Throttle
 
-Continuous monitoring with configurable interval:
+Limit a process CPU usage:
 
+```bash
+cooldown throttle 12345 --cpu 50        # Limit to 50% CPU
+cooldown throttle 12345 --cpu 30 -d 60  # Limit for 60 seconds
 ```
-cooldown watch                            # 80% threshold, 30s interval
-cooldown watch --threshold 60 --interval 10
-cooldown watch --auto-clean               # auto-kill on detection
+
+### Wrap Command
+
+Run commands with thermal safety:
+
+```bash
+cooldown wrap cargo build                    # Monitor thermal
+cooldown wrap --cpu 50 npm run build         # Limit to 50% CPU
+cooldown wrap --thermal heavy cargo test     # Kill if too hot
+cooldown wrap --timeout 300 make all         # Timeout after 5min
+```
+
+### Maintenance
+
+```bash
+cooldown maintenance --dns         # Flush DNS cache
+cooldown maintenance --purgeable   # Free purgeable space
+cooldown maintenance --timemachine # Clear Time Machine snapshots
+cooldown maintenance --all         # Run all tasks
 ```
 
 ### Whitelist
 
-Protect processes from being killed (substring match, `*` wildcard supported):
+Protect processes from being killed:
 
-```
-cooldown whitelist add "claude --dangerously"
+```bash
 cooldown whitelist add "node*expo"
-cooldown whitelist add "Xcode"
+cooldown whitelist add "cargo build"
 cooldown whitelist list
-cooldown whitelist remove "Xcode"
-cooldown whitelist clear
+cooldown whitelist remove "cargo build"
 ```
 
-## Process Issue Types
+### Configuration
+
+```bash
+cooldown config --init              # Create config file
+cooldown config --show              # Show current config
+cooldown config --set cpu_threshold=75
+```
+
+## Process Status Types
 
 | Status | Meaning |
 |--------|---------|
-| `[ORPHAN]` | Parent PID = 1 (init), high CPU, running > 1h |
-| `[STUCK]` | CPU > 200% (2+ full cores), running > 1h |
-| `[OLD Nd]` | Running >= 3 days with CPU > 30% |
+| `[ORPHAN]` | Parent PID = 1, high CPU, running > 1h |
+| `[STUCK]` | CPU > 200%, running > 1h |
+| `[OLD]` | Running >= 3 days with high CPU |
+| `[SYS]` | System app (protected) |
+| `[WL]` | Whitelisted |
 | `[OK]` | Normal |
 
-## Sample Output
+## Battery Aware Mode
 
-```
-HIGH CPU PROCESSES (>= 50%)
-+--------+--------------------+------+--------+---------+-----------+
-| PID    | Process            | CPU% | MEM MB | Running | Status    |
-+--------+--------------------+------+--------+---------+-----------+
-| 38902  | esbuild            | 365% | 48     | 4d 2h   | [STUCK]   |
-| 76224  | claude             | 93%  | 2      | 5d 10h  | [ORPHAN]  |
-| 94757  | claude             | 21%  | 344    | 10h     | [OK] [WL] |
-+--------+--------------------+------+--------+---------+-----------+
+When running on battery:
+- Lower CPU threshold (30% vs 50%)
+- More aggressive about identifying problematic processes
+- Shown in dashboard: `🔋 Battery 85%`
 
-  System: Load 10.81 | CPU 83% | Memory 15GB/16GB
+## Thermal Levels
 
-  Hint: Found 2 problematic processes (458% CPU wasted)
-     Run `cooldown clean` to fix
-```
+| Level | Meaning |
+|-------|---------|
+| ❄️ Nominal | Cool, normal operation |
+| 🌡️ Moderate | Slightly warm |
+| 🔥 Heavy | Hot, consider action |
+| 🚨 Critical | Very hot, immediate action needed |
 
-## Configuration
+## Configuration File
 
-Whitelist file: `~/.config/cooldown/whitelist.json` (macOS: `~/Library/Application Support/cooldown/whitelist.json`)
+Location: `~/Library/Application Support/cooldown/config.toml`
 
-```json
-{
-  "patterns": [
-    "claude --dangerously",
-    "node*expo",
-    "Xcode",
-    "cargo build"
-  ]
-}
+```toml
+cpu_threshold = 50
+watch_interval = 30
+auto_clean = false
+thermal_limit = "critical"
+wrap_cpu_limit = 80
+whitelist = ["Xcode", "cargo build"]
 ```
 
 ## Notes
 
-- CPU percentages are per-core (sysinfo convention). 200% = 2 full cores busy.
-- Process scanning refreshes twice with a short sleep to get accurate CPU readings (first reading from sysinfo is always 0).
-- `clean` and `kill` use SIGTERM by default; add `--force` for SIGKILL.
-- Whitelisted processes are shown with `[WL]` tag in scan output and are always skipped in clean/kill.
+- CPU percentages are per-core (200% = 2 full cores)
+- System apps (Safari, Finder, etc.) are automatically protected
+- Throttling uses SIGSTOP/SIGCONT cycling
+- Some maintenance tasks require `sudo`

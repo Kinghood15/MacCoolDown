@@ -1,6 +1,6 @@
 [package]
 name = "cooldown"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
 description = "CLI tool to manage CPU-heavy processes and keep MacBook cool"
 license = "MIT"
@@ -17,9 +17,19 @@ tabled = "0.15"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+toml = "0.8"
 dirs = "5"
 chrono = "0.4"
 indicatif = "0.17"
+ctrlc = "3"
+dialoguer = "0.11"
+console = "0.15"
+num_cpus = "1.16"
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.29", features = ["signal"] }
+nix = { version = "0.29", features = ["signal", "process"] }
+libc = "0.2"
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
