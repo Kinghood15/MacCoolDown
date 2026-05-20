@@ -1,6 +1,6 @@
 [package]
 name = "cooldown"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 description = "CLI tool to manage CPU-heavy processes and keep MacBook cool"
 license = "MIT"
