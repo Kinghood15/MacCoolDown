@@ -79,7 +79,6 @@ pub fn kill_processes(
 
 /// Send SIGTERM then wait, then SIGKILL if needed
 #[cfg(unix)]
-#[allow(dead_code)]
 pub fn graceful_kill(pid: u32, name: &str, timeout_secs: u64) -> KillResult {
     use std::time::{Duration, Instant};
 
@@ -128,7 +127,6 @@ pub fn graceful_kill(pid: u32, name: &str, timeout_secs: u64) -> KillResult {
 }
 
 #[cfg(not(unix))]
-#[allow(dead_code)]
 pub fn graceful_kill(pid: u32, name: &str, _timeout_secs: u64) -> KillResult {
     kill_process(pid, name, true)
 }

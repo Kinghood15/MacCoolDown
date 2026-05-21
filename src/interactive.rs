@@ -3,7 +3,7 @@ use colored::*;
 use dialoguer::{theme::ColorfulTheme, Select};
 
 use crate::analyzer::{analyze_processes, AnalyzedProcess};
-use crate::killer::kill_process;
+use crate::killer::{kill_process, graceful_kill};
 use crate::maintenance::run_maintenance;
 use crate::scanner::{get_cpu_usage, get_memory_info, get_system_load, scan_processes};
 use crate::thermal::{get_thermal_status, PowerSource, ThermalStatus};
@@ -426,8 +426,8 @@ fn kill_all(processes: &[&AnalyzedProcess]) -> Result<()> {
     println!();
 
     let kill_options = vec![
-        format!("Kill all {} (SIGTERM)", processes.len()),
-        format!("Force kill all {} (SIGKILL)", processes.len()),
+        format!("Graceful kill {} (SIGTERM → SIGKILL)", processes.len()),
+        format!("Force kill {} (SIGKILL only)", processes.len()),
         "← Cancel".to_string(),
     ];
 
@@ -437,23 +437,30 @@ fn kill_all(processes: &[&AnalyzedProcess]) -> Result<()> {
         .default(0)
         .interact()?;
 
-    let force = match selection {
-        0 => false,
-        1 => true,
-        _ => {
-            println!("  {} Cancelled.", "INFO".dimmed());
-            println!();
-            return Ok(());
-        }
-    };
+    if selection == 2 {
+        println!("  {} Cancelled.", "INFO".dimmed());
+        println!();
+        return Ok(());
+    }
+
+    let force_only = selection == 1;
 
     println!();
     let mut killed = 0;
     let mut failed = 0;
 
     for ap in processes {
-        let result = kill_process(ap.info.pid, &ap.info.name, force);
-        if result.success {
+        let result = if force_only {
+            kill_process(ap.info.pid, &ap.info.name, true)
+        } else {
+            graceful_kill(ap.info.pid, &ap.info.name, 2)
+        };
+
+        // Verify process actually died
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let actually_dead = !process_still_running(ap.info.pid);
+
+        if result.success && actually_dead {
             println!(
                 "  {} {} (PID {})",
                 "KILLED".green().bold(),
@@ -461,12 +468,19 @@ fn kill_all(processes: &[&AnalyzedProcess]) -> Result<()> {
                 ap.info.pid
             );
             killed += 1;
+        } else if result.success && !actually_dead {
+            println!(
+                "  {} {} - signal sent but process still running (may need sudo)",
+                "FAILED".red().bold(),
+                ap.info.name
+            );
+            failed += 1;
         } else {
             println!(
                 "  {} {} - {}",
                 "FAILED".red().bold(),
                 ap.info.name,
-                result.error.unwrap_or_default()
+                result.error.unwrap_or_else(|| "unknown error".to_string())
             );
             failed += 1;
         }
@@ -535,8 +549,8 @@ fn select_and_kill(processes: &[&AnalyzedProcess]) -> Result<()> {
         println!();
 
         let kill_options = vec![
-            "Kill (SIGTERM - graceful)",
-            "Force Kill (SIGKILL - immediate)",
+            "Graceful (SIGTERM → wait → SIGKILL)",
+            "Force (SIGKILL only)",
             "← Cancel",
         ];
 
@@ -548,17 +562,15 @@ fn select_and_kill(processes: &[&AnalyzedProcess]) -> Result<()> {
 
         match kill_selection {
             0 => {
-                // SIGTERM
-                let result = kill_process(ap.info.pid, &ap.info.name, false);
-                if result.success {
-                    println!("  {} Sent SIGTERM to {}", "OK".green().bold(), ap.info.name);
-                    std::thread::sleep(std::time::Duration::from_millis(500));
-                    // Check if process still exists
-                    if process_still_running(ap.info.pid) {
-                        println!("  {} Process still running. Try Force Kill?", "WARN".yellow());
-                    } else {
-                        println!("  {} Process terminated.", "OK".green());
-                    }
+                // Graceful kill: SIGTERM → wait 2s → SIGKILL if needed
+                println!("  {} Sending SIGTERM...", "...".dimmed());
+                let result = graceful_kill(ap.info.pid, &ap.info.name, 2);
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                let dead = !process_still_running(ap.info.pid);
+                if result.success && dead {
+                    println!("  {} Process terminated.", "OK".green().bold());
+                } else if !dead {
+                    println!("  {} Process still running (may need sudo)", "WARN".yellow());
                 } else {
                     println!(
                         "  {} Failed: {}",
@@ -568,10 +580,14 @@ fn select_and_kill(processes: &[&AnalyzedProcess]) -> Result<()> {
                 }
             }
             1 => {
-                // SIGKILL
+                // SIGKILL only
                 let result = kill_process(ap.info.pid, &ap.info.name, true);
-                if result.success {
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                let dead = !process_still_running(ap.info.pid);
+                if result.success && dead {
                     println!("  {} Force killed {}", "OK".green().bold(), ap.info.name);
+                } else if !dead {
+                    println!("  {} Signal sent but process still running (may need sudo)", "WARN".yellow());
                 } else {
                     println!(
                         "  {} Failed: {}",
